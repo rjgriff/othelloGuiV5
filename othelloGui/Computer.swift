@@ -30,23 +30,16 @@ class Computer{
     var playerColor:pt!
     var currentBoard:[[othello]]!
     var totalMovesAhead = 5
-    
+    var playerFirst:Bool
 
-    init(computerColor:pt){
+    init(computerColor:pt, playerFirst:Bool){
         self.computerColor = computerColor
         self.playerColor = (computerColor == .BLACK) ? .WHITE : .BLACK
+        self.playerFirst = playerFirst
     }
     
     func retrieveBoard()->[[othello]]{
         return((delegate?.getCurrentBoard())!)
-    }
-    
-    func getPiece(r:Int,c:Int)->pt{
-        return currentBoard[r][c].piece
-    }
-    
-    func setPiece(r:Int,c:Int,piece:pt){
-        currentBoard[r][c].piece = piece
     }
     
     func move(r:Int,c:Int){
@@ -54,19 +47,27 @@ class Computer{
     }
     
     func computerToMove(){
-        //    let parentNode = Node(r: -1,c: -1,b: Board(board: retrieveBoard(), forColor: computerColor))
-        //  findMoves(parent: parentNode, movesAhead: 0)
-        //getBestMove(parent: <#Node#>)
+        // Retrieve current board and instantiate class for computer color
         let b = Board(board: retrieveBoard(), forColor: computerColor)
+        
+        // Check if computer has moves available
         if(b.movesAvailable > 0){
             var m = moves(r: 0, c: 0, flpd: 0)
             if(b.getBestMove(move: &m) == true){
+                if(!playerFirst){
+                    delegate?.saveBoard(r: m.r, c: m.c, forComputer: true)
+                }
                 move(r: m.r, c: m.c)
             }
+            
         }else{
-            if(Board(board: retrieveBoard(), forColor: playerColor).movesAvailable > 0){
+            //If not, check if player has moves available. If so,prompt
+            // player to move
+            if(Board(board: retrieveBoard(),
+                     forColor: playerColor).movesAvailable > 0){
                 delegate?.updateStatus(computerNext: false)
             }else{
+                // Neither can move so count pieces and determine winner
                 var blk=0,wht=0
                 delegate?.updateCount(black: &blk, white: &wht)
                 if(blk > wht){
@@ -78,8 +79,7 @@ class Computer{
                 }
             }
         }
-        
-        //   print("getting moves from current board")
+  
     }
 /*
     func findMoves(parent:Node,movesAhead:Int){

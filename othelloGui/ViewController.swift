@@ -19,6 +19,7 @@ enum hl:Int{case OFF=0, AV, HL,OH,IGNORE}
 class ViewController: NSViewController {
     var m:Model!
     var playerFirst:Bool = false
+    var initialDelay:Int = 500000
     @IBOutlet var Board: mainView!
     @IBOutlet var status: NSTextField!
     @IBOutlet var blackCnt: NSTextField!
@@ -29,13 +30,21 @@ class ViewController: NSViewController {
     @IBAction func pubA(_ sender: Any) {
         let btn = sender as! NSPopUpButton
         let index = btn.indexOfSelectedItem
-       
-        switch(index){
-        
-        case 1: m.setDelay(delay: 0)
-        case 2: m.setDelay(delay: 200000)
-        case 3: m.setDelay(delay: 1500000)
-        default: m.setDelay(delay: 500000)
+        if(self.m == nil){
+            switch(index){
+            case 1: self.initialDelay = 0
+            case 2: self.initialDelay = 200000
+            case 3: self.initialDelay = 1500000
+            default: self.initialDelay = 500000
+            }
+        }else{
+            switch(index){
+            case 1: m.setDelay(delay: 0)
+            case 2: m.setDelay(delay: 200000)
+            case 3: m.setDelay(delay: 1500000)
+            default: m.setDelay(delay: 500000)
+                
+            }
         }
     }
     
@@ -47,12 +56,12 @@ class ViewController: NSViewController {
         m = nil
         if(playBlack.state == .on){
             self.playerFirst = true
-            m = Model(playerFirst: true)
+            m = Model(playerFirst: true, initialDelay: self.initialDelay)
             status.stringValue = "You go first"
         }
         else{
             self.playerFirst = false
-            m = Model(playerFirst: false)
+            m = Model(playerFirst: false, initialDelay: self.initialDelay)
         }
         m.delegate = self
         m.initBoard()

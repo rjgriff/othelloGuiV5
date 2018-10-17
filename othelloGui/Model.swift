@@ -11,6 +11,10 @@ import AppKit
 protocol support:class{
     func setPiece(r: Int,c:Int)
     func getCurrentBoard()->[[othello]]
+    func updateStatus(computerNext:Bool)
+    func displayWinner(color:pt)
+    func updateCount(black:inout Int,white:inout Int)
+    func saveBoard(r:Int,c:Int,forComputer:Bool)
 }
 enum pt:Int{case EMPTY=0,WHITE,BLACK}
 struct othello{
@@ -37,17 +41,19 @@ class Model{
     var updateBoardFlag:Bool = true, delayTime:Int=500000,playerColor:pt
     var playerFirst:Bool,computerColor:pt
     var compClass:Computer!
-    init(playerFirst:Bool){
+    var savedBoard:[[othello]]!, lastR:Int!, lastC:Int!,computerLast:Bool!
+    
+    init(playerFirst:Bool,initialDelay:Int){
         self.playerFirst = playerFirst
+        self.delayTime = initialDelay
         (self.playerColor,self.computerColor) = (playerFirst == true)
             ? (.BLACK, .WHITE) : (.WHITE, .BLACK)
         NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(self.clicked(notification:)),
+            self, selector: #selector(self.clicked(notification:)),
             name: NSNotification.Name(rawValue: "squareSelected"), object: nil)
         
         compClass = nil
-        compClass = Computer(computerColor: self.computerColor)
+        compClass = Computer(computerColor: self.computerColor, playerFirst: playerFirst)
         compClass.delegate = self
     }
     
@@ -73,12 +79,21 @@ class Model{
         //   if(computersTurn == true){return}
         let row = notification.userInfo?["row"] as? Int
         let col = notification.userInfo?["col"] as? Int
+        if(playerFirst){saveBoard(r: row!,c: col!,forComputer: false)}
         let b = Board(board: self.board, forColor: self.playerColor)
         var flpCnt=0
-        if(b.isSquareValid(r:row!, c: col!, flpdCnt: &flpCnt) == true){
-            updateBoard(r: row!, c: col!, forComputer: false)
+        if(b.movesAvailable > 0){
+            if(b.isSquareValid(r:row!, c: col!, flpdCnt: &flpCnt) == true){
+                updateBoard(r: row!, c: col!, forComputer: false)
+            }
+        }
+        else{
+            if(self.isGameComplete(board: self.board) == false){
+                self.updateStatus(computerNext: true)
+            }
         }
     }
+    
     private func updateBoard(r:Int,c:Int,forComputer:Bool){
         var ca:[cp] = []
         let color = getColor(forComputer: forComputer)
@@ -87,6 +102,31 @@ class Model{
         simulateFlip(forComputer: forComputer, flipped: ca)
     }
     
+    func reDisplayBoard(){
+        self.board = self.savedBoard
+        let color = (self.computerLast == true) ? computerColor : playerColor
+        for r in 0...7{
+            for c in 0...7{
+                self.setPiece(row: r, column: c,
+                              toColor: self.board[r][c].piece,
+                              sq: self.board[r][c].bkgrd)
+            }
+        }
+        DispatchQueue.global().async {
+            
+            usleep(useconds_t(self.delayTime))
+            DispatchQueue.main.async{
+                self.updateStatus(computerNext: !self.computerLast)
+                self.setPiece(row: self.lastR, column: self.lastC,
+                              toColor: color, sq: .OFF)
+                NSSound(named: NSSound.Name("Pop"))!.play()
+            }
+            usleep(useconds_t(self.delayTime))
+            self.updateBoard(r: self.lastR, c: self.lastC,
+                             forComputer: self.computerLast)
+        }
+    }
+   
     private func simulateFlip(forComputer:Bool, flipped:[cp]){
         let g = DispatchGroup()
         g.enter()
@@ -143,17 +183,6 @@ class Model{
         self.delegate?.highlight(color: sq, row: row, col: column)
     }
     
-    private func updateCount(black:inout Int,white:inout Int){
-        black=0;white=0;
-        for r in 0...7{
-            for c in 0...7{
-                if(board[r][c].piece == .WHITE){white+=1}
-                if(board[r][c].piece == .BLACK){black+=1}
-            }
-        }
-        delegate?.displayCount(black: black, white: white)
-    }
-    
     private func isGameComplete(board:[[othello]])->Bool{
         var blk=0,wht=0
         updateCount(black: &blk, white: &wht)
@@ -163,9 +192,9 @@ class Model{
         if(comp > 0 || plyr > 0){
             return false
         }
-        if(blk > wht){delegate?.displayWinner(result: .BLACK)}
-        else if(wht > blk){delegate?.displayWinner(result: .WHITE)}
-        else{delegate?.displayWinner(result: .EMPTY)}
+        if(blk > wht){displayWinner(color: .BLACK)}
+        else if(wht > blk){displayWinner(color: .WHITE)}
+        else{displayWinner(color: .EMPTY)}
         resetHighlight(hlt: false)
         return true
     }
@@ -204,10 +233,6 @@ class Model{
             }
         }
     }
-    
-    private func updateStatus(computerNext:Bool){
-        delegate?.updateStatus(computerTurn: computerNext)
-    }
 }
 
 extension Model:support{
@@ -218,5 +243,30 @@ extension Model:support{
     
     func getCurrentBoard()->[[othello]]{
         return board
+    }
+    
+    func updateStatus(computerNext:Bool){
+        delegate?.updateStatus(computerTurn: computerNext)
+    }
+    
+    func displayWinner(color:pt){
+        delegate?.displayWinner(result: color)
+    }
+    
+    func updateCount(black:inout Int,white:inout Int){
+        black=0;white=0;
+        for r in 0...7{
+            for c in 0...7{
+                if(board[r][c].piece == .WHITE){white+=1}
+                if(board[r][c].piece == .BLACK){black+=1}
+            }
+        }
+        delegate?.displayCount(black: black, white: white)
+    }
+    
+    func saveBoard(r:Int,c:Int,forComputer:Bool){
+        self.lastR = r;self.lastC = c;
+        self.savedBoard = self.board
+        self.computerLast = forComputer
     }
 }
