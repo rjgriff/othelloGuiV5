@@ -39,6 +39,10 @@ class ViewController: NSViewController {
         }
     }
     
+    @IBAction func reDisplayMove(_ sender: Any) {
+        m.reDisplayBoard()
+    }
+    
     @IBAction func newGame(_ sender: Any) {
         m = nil
         if(playBlack.state == .on){
@@ -63,7 +67,7 @@ class ViewController: NSViewController {
     }
     override func viewDidAppear() {
         view.window!.styleMask.remove(.resizable)
-        view.window?.setFrame(NSRect(x: 300, y: 300, width: 725, height: 770), display: true)
+        view.window?.setFrame(NSRect(x: 300, y: 300, width: 850, height: 770), display: true)
     }
 }
 

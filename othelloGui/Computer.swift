@@ -54,17 +54,32 @@ class Computer{
     }
     
     func computerToMove(){
-    //    let parentNode = Node(r: -1,c: -1,b: Board(board: retrieveBoard(), forColor: computerColor))
-      //  findMoves(parent: parentNode, movesAhead: 0)
+        //    let parentNode = Node(r: -1,c: -1,b: Board(board: retrieveBoard(), forColor: computerColor))
+        //  findMoves(parent: parentNode, movesAhead: 0)
         //getBestMove(parent: <#Node#>)
         let b = Board(board: retrieveBoard(), forColor: computerColor)
-        var m = moves(r: 0, c: 0, flpd: 0)
-        if(b.getBestMove(move: &m) == true){
-            move(r: m.r, c: m.c)
-            
+        if(b.movesAvailable > 0){
+            var m = moves(r: 0, c: 0, flpd: 0)
+            if(b.getBestMove(move: &m) == true){
+                move(r: m.r, c: m.c)
+            }
+        }else{
+            if(Board(board: retrieveBoard(), forColor: playerColor).movesAvailable > 0){
+                delegate?.updateStatus(computerNext: false)
+            }else{
+                var blk=0,wht=0
+                delegate?.updateCount(black: &blk, white: &wht)
+                if(blk > wht){
+                    delegate?.displayWinner(color: .BLACK)
+                }else if(wht > blk){
+                    delegate?.displayWinner(color: .WHITE)
+                }else{
+                    delegate?.displayWinner(color: .EMPTY)
+                }
+            }
         }
         
-     //   print("getting moves from current board")
+        //   print("getting moves from current board")
     }
 /*
     func findMoves(parent:Node,movesAhead:Int){
